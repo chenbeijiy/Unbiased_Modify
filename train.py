@@ -68,6 +68,8 @@ def training(dataset: ModelParams,
     ema_multiview_reflection_for_log = 0.0
     ema_view_dependent_for_log = 0.0
 
+    for idx, camera in enumerate(scene.getTrainCameras()):
+        camera.idx = idx       
     progress_bar = tqdm(range(first_iter, opt.iterations), desc="Training progress")
     first_iter += 1
     for iteration in range(first_iter, opt.iterations + 1):        
@@ -97,7 +99,10 @@ def training(dataset: ModelParams,
         gt_image.pow(dataset.gamma)
 
         ssim_value = ssim(image, gt_image)
-        Ll1 = l1_loss(image, gt_image)
+        if dataset.use_decoupled_appearance:  # L1损失中加入外观模型
+            Ll1 = L1_loss_appearance(image, gt_image, gaussians, viewpoint_cam.idx)
+        else:
+            Ll1 = l1_loss(image, gt_image)
         loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim_value)
 
         # regularization
@@ -371,6 +376,29 @@ def training_report(
 
         torch.cuda.empty_cache()
 
+def L1_loss_appearance(image, gt_image, gaussians, view_idx, return_transformed_image=False):
+    appearance_embedding = gaussians.get_apperance_embedding(view_idx)
+    # center crop the image
+    origH, origW = image.shape[1:]
+    H = origH // 32 * 32
+    W = origW // 32 * 32
+    left = origW // 2 - W // 2
+    top = origH // 2 - H // 2
+    crop_image = image[:, top:top+H, left:left+W]
+    crop_gt_image = gt_image[:, top:top+H, left:left+W]
+    
+    # down sample the image
+    crop_image_down = torch.nn.functional.interpolate(crop_image[None], size=(H//32, W//32), mode="bilinear", align_corners=True)[0]
+    
+    crop_image_down = torch.cat([crop_image_down, appearance_embedding[None].repeat(H//32, W//32, 1).permute(2, 0, 1)], dim=0)[None]
+    mapping_image = gaussians.appearance_network(crop_image_down)
+    transformed_image = mapping_image * crop_image
+    if not return_transformed_image:
+        return l1_loss(transformed_image, crop_gt_image)
+    else:
+        transformed_image = torch.nn.functional.interpolate(transformed_image, size=(origH, origW), mode="bilinear", align_corners=True)[0]
+        return transformed_image
+    
 if __name__ == "__main__":
     # Set up command line argument parser
     parser = ArgumentParser(description="Training script parameters")

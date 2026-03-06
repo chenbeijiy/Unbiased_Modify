@@ -20,6 +20,7 @@ from utils.sh_utils import RGB2SH
 from simple_knn._C import distCUDA2
 from utils.graphics_utils import BasicPointCloud
 from utils.general_utils import strip_symmetric, build_scaling_rotation
+from scene.appearance_network import AppearanceNetwork
 
 class GaussianModel:
 
@@ -60,6 +61,12 @@ class GaussianModel:
         self.percent_dense = 0
         self.spatial_lr_scale = 0
         self.setup_functions()
+
+        self.appearance_network = AppearanceNetwork(3+64, 3).cuda()
+        
+        std = 1e-4
+        self._appearance_embeddings = nn.Parameter(torch.empty(2048, 64).cuda())
+        self._appearance_embeddings.data.normal_(0, std)
 
     def capture(self):
         return (
@@ -119,6 +126,9 @@ class GaussianModel:
     
     def get_covariance(self, scaling_modifier = 1):
         return self.covariance_activation(self.get_xyz, self.get_scaling, scaling_modifier, self._rotation)
+    
+    def get_apperance_embedding(self, idx):
+        return self._appearance_embeddings[idx]
 
     def oneupSHdegree(self):
         if self.active_sh_degree < self.max_sh_degree:

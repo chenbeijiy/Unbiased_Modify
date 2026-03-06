@@ -9,13 +9,15 @@
    - [1.3 法线引导的表面连续性检测](#13-法线引导的表面连续性检测normal-guided-surface-continuity)
 3. [创新点2：多视角反射一致性约束](#创新点2多视角反射一致性约束multi-view-reflection-consistency)
 4. [创新点3：视角依赖深度约束](#创新点3视角依赖深度约束view-dependent-depth-constraint)
-5. [总结与对比](#总结与对比)
+5. [超参数与数据集体调优](#超参数与数据集体调优)
+6. [总结与对比](#总结与对比)
+7. [代码位置索引](#代码位置索引)
 
 ---
 
 ## 概述
 
-本文档详细描述了我们方法相对于Unbiased-Depth的**三大创新点**，其中**创新点1包含三个子创新**。这些创新点从不同角度提升了2D Gaussian Splatting的几何重建质量，特别是在处理表面反射不连续性和深度偏差方面。
+本文档详细描述了我们方法相对于Unbiased-Depth的**三大创新点**，其中**创新点1包含三个子创新**。技术路线为：**2D Gaussian Splatting (2DGS)** → **Unbiased-Depth**（引入深度约束）→ **本方法**（在上述约束上进一步改进）。这些创新从不同角度提升了2DGS的几何重建质量，特别是在表面反射不连续性和深度偏差方面。
 
 ---
 
@@ -355,44 +357,16 @@ w_reflection = sigmoid(10.0 · specular_strength)
 
 **位置**：`utils/multiview_reflection_consistency_improved.py`
 
-**关键函数**：
-```python
-def multiview_reflection_consistency_loss_improved(
-    render_pkgs,
-    viewpoint_cameras,
-    lambda_weight=1.0,
-    mask_background=True,
-    use_highlight_mask=False,
-    highlight_threshold=0.5,
-    resolution_scale=0.75
-):
-    """
-    改进版多视角反射一致性损失
-    
-    改进点：
-    1. 直接使用RGB亮度，而不是复杂的反射强度计算
-    2. 使用低分辨率计算（可选）
-    3. 只在高光区域计算（可选）
-    4. 简化视角权重计算
-    """
-    # 1. 计算每个视角的亮度
-    luminances = []
-    for render_pkg in render_pkgs:
-        rgb_image = render_pkg['render']
-        luminance = compute_luminance(rgb_image)
-        luminances.append(luminance)
-    
-    # 2. 计算视角间的亮度一致性损失
-    total_loss = 0.0
-    for i in range(len(render_pkgs)):
-        for j in range(i+1, len(render_pkgs)):
-            # 计算亮度差异
-            luminance_diff = (luminances[i] - luminances[j])²
-            # 加权求和
-            total_loss += luminance_diff.mean()
-    
-    return lambda_weight * total_loss
-```
+**关键函数**：`multiview_reflection_consistency_loss_improved(render_pkgs, viewpoint_cameras, lambda_weight=1.0, mask_background=True, use_highlight_mask=True, highlight_threshold=0.5, resolution_scale=0.75, sigmoid_scale=10.0)`
+
+**实现逻辑**：
+1. 提取多视角 RGB 与 `surf_depth`，可选 `resolution_scale` 降分辨率
+2. 统一各视角深度图空间尺寸（处理不同相机分辨率）
+3. 计算每视角反射权重 `specular_strength = luminance · rgb_variance`，经 sigmoid 归一化
+4. 成对计算深度差 `(D_i - D_j)²`，按反射权重、高光掩码与背景掩码加权
+5. 对视角对求平均，返回 `lambda_weight * total_loss`
+
+**训练集成**：`train.py` 第124-161行，仅在 `iteration > 15000` 且 `iteration % 5 == 0` 时计算，每次随机采样至多 3 个视角。
 
 #### 创新性分析
 
@@ -486,39 +460,16 @@ view_weight = 0.7 * view_weight_linear + 0.3 * view_weight_exp
 
 **位置**：`utils/view_dependent_depth_constraint.py`
 
-**关键函数**：
-```python
-def view_dependent_depth_constraint_loss(
-    render_pkg,
-    viewpoint_cam,
-    lambda_view_weight=2.0,
-    mask_background=True
-):
-    """
-    计算视角依赖的深度约束损失
-    """
-    # 1. 计算视角方向
-    view_dirs = compute_view_direction(viewpoint_cam, H, W)
-    
-    # 2. 计算视角-法线夹角
-    cos_theta = compute_view_normal_angle(view_dirs, surf_normal)
-    
-    # 3. 计算视角依赖权重
-    view_weight_linear = 0.1 + 0.9 * (cos_theta + 1.0) / 2.0
-    view_weight_exp = exp(-lambda_view_weight_reduced * (1.0 - cos_theta))
-    view_weight = 0.7 * view_weight_linear + 0.3 * view_weight_exp
-    
-    # 4. 计算深度梯度
-    depth_grad_sq = compute_depth_gradient(surf_depth)
-    
-    # 5. 应用视角依赖权重
-    weighted_depth_grad = view_weight * depth_grad_sq
-    
-    # 6. 计算平均损失
-    loss = weighted_depth_grad.mean()
-    
-    return loss
-```
+**关键函数**：`view_dependent_depth_constraint_loss(render_pkg, viewpoint_cam, lambda_weight=1.0, lambda_view_weight=2.0, mask_background=True, background_threshold_factor=0.95)`
+
+**实现逻辑**：
+1. 用 `depths_to_points` 重建 3D 点并 reshape 为 `[H, W, 3]`
+2. 计算视角方向 `camera_center - points_3d`，归一化
+3. 计算 `cos_theta = dot(view_dir, surf_normal)`
+4. 视角依赖权重：`view_weight = 0.7 * view_weight_linear + 0.3 * view_weight_exp`
+5. 计算深度梯度 `||∇D||²`，应用权重与背景掩码后求平均
+
+**训练集成**：`train.py` 第164-177行，从 `iteration > 12000` 开始启用，使用当前主视角的 `render_pkg`，无额外渲染。
 
 #### 创新性分析
 
@@ -571,6 +522,28 @@ def view_dependent_depth_constraint_loss(
 
 ---
 
+## 超参数与数据集体调优
+
+### 默认超参数
+
+| 参数 | 默认值 | 启用条件 |
+|------|--------|----------|
+| `lambda_converge` | 7.0 | iteration > 10000 |
+| `lambda_multiview_reflection` | 0.5 | iteration > 15000，且每 5 次迭代计算 |
+| `lambda_view_dependent` | 0.3 | iteration > 12000 |
+
+### M360 数据集调优
+
+M360 规模大于 DTU，建议在 `scripts/m360_eval.py` 中调整：
+
+| 参数 | DTU 默认 | M360 建议 | 说明 |
+|------|----------|-----------|------|
+| `lambda_converge` | 7.0 | 5.0 | 降低汇聚约束，利于大场景收敛 |
+| `lambda_multiview_reflection` | 0.5 | 0.2 | 保留多视角约束，减轻额外渲染 |
+| `lambda_view_dependent` | 0.3 | 0.1 | 保留视角依赖约束 |
+
+---
+
 ### 与Unbiased-Depth的全面对比
 
 | 特性 | Unbiased-Depth | 我们的方法 |
@@ -618,25 +591,20 @@ def view_dependent_depth_constraint_loss(
 
 ---
 
-### 代码位置
+## 代码位置索引
 
-#### 创新点1（改进的汇聚损失）
-
-- **Forward Pass**：`submodules/diff_surfel_rasterization/cuda_rasterizer/forward.cu`
-- **Backward Pass**：`submodules/diff_surfel_rasterization/cuda_rasterizer/backward.cu`
-
-#### 创新点2（多视角反射一致性）
-
-- **实现文件**：`utils/multiview_reflection_consistency_improved.py`
-- **调用位置**：`train.py`（当前已注释）
-
-#### 创新点3（视角依赖深度约束）
-
-- **实现文件**：`utils/view_dependent_depth_constraint.py`
-- **调用位置**：`train.py`（当前已注释）
+| 创新点 | 文件 | 说明 |
+|--------|------|------|
+| 创新点1 | `submodules/diff-surfel-rasterization/cuda_rasterizer/forward.cu` | 前向汇聚损失（约441-494行） |
+| 创新点1 | `submodules/diff-surfel-rasterization/cuda_rasterizer/backward.cu` | 反向梯度（约366-448行） |
+| 创新点2 | `utils/multiview_reflection_consistency_improved.py` | 多视角反射一致性损失 |
+| 创新点2 | `train.py` 第31、124-161行 | 调用与集成 |
+| 创新点3 | `utils/view_dependent_depth_constraint.py` | 视角依赖深度约束损失 |
+| 创新点3 | `train.py` 第32、164-177行 | 调用与集成 |
+| 超参数 | `arguments/__init__.py` 第88-90行 | `lambda_converge`、`lambda_multiview_reflection`、`lambda_view_dependent` |
 
 ---
 
 **创建日期**：2025年3月  
-**版本**：1.0  
-**状态**：✅ 完整文档已创建
+**版本**：2.0  
+**状态**：✅ 与当前代码实现一致

@@ -42,6 +42,9 @@ if not skip_training:
         "--test_iterations -1",
         "--eval", # Only required when NVS
         "--lambda_dist 0",
+        "--lambda_multiview_reflection 0.2",
+        "--lambda_view_dependent 0.1",
+        "--lambda_converge 5.0",
         f"--logger_enabled",
         f"--seed {seed}"
     ])

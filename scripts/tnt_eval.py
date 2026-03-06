@@ -3,27 +3,28 @@ import sys
 from argparse import ArgumentParser
 
 # Path to the TnT dataset
-TNT_data = "/dataset/TNT_GOF/TrainingSet"
+TNT_data = "../data/TNT_GOF"
 
 tnt_360_scenes = ['Barn', 'Caterpillar', 'Ignatius', 'Truck']
+tnt_360_scenes = ['Barn']
 tnt_large_scenes = ['Meetingroom', 'Courthouse']
+tnt_large_scenes = []
+
 
 python_path = sys.executable
 
-lambda_converge = 7.0
-iteration = 30000
 seed = 1111
 
-skip_training = False
-skip_rendering = False
-skip_metrics = True
+skip_training = True
+skip_rendering = True
+skip_metrics = False
 
 parser = ArgumentParser(description="Full evaluation script parameters")
-parser.add_argument("--output_path", default="./eval/tnt")
+parser.add_argument("--output_path", default="../output/modify/tnt")
 args, _ = parser.parse_known_args()
 
 if not skip_metrics:
-    parser.add_argument('--TNT_GT', required=True, type=str)
+    parser.add_argument('--TNT_GT', default="../data/TNT_GOF")
     args = parser.parse_args()
 
 
@@ -32,9 +33,10 @@ if not skip_training:
         " --quiet",
         "--test_iterations -1",
         "-r 2",
+        "--lambda_multiview_reflection 0.2",
+        "--lambda_view_dependent 0.1",
+        "--lambda_converge 5.0",
         "--lambda_dist 0",
-        f"--lambda_converge {lambda_converge}",
-        "--densify_until_iter 20000",
         f"--seed {seed}"
     ])
     
@@ -75,7 +77,7 @@ if not skip_metrics:
     all_scenes = tnt_360_scenes + tnt_large_scenes
 
     for scene in all_scenes:
-        ply_file = f"{args.output_path}/{scene}/train/ours_{iteration}/fuse_post.ply"
+        ply_file = f"{args.output_path}/{scene}/train/ours_30000/fuse_post.ply"
         string = f"OMP_NUM_THREADS=4 {python_path} {script_dir}/eval_tnt/run.py " + \
             f"--dataset-dir {args.TNT_GT}/{scene} " + \
             f"--traj-path {TNT_data}/{scene}/{scene}_COLMAP_SfM.log " + \
