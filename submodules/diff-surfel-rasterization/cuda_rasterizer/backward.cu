@@ -367,7 +367,15 @@ renderCUDA(
                         float ratio_front = (max_G_front > 1e-8f) ? (min_G_front / max_G_front) : 0.0f;
                         float improved_base_weight_front = geometric_mean_front * (0.7f + 0.3f * ratio_front);
                         
-                        float front_grad = improved_base_weight_front * 2.0f * (c_d - front_depth) * dL_dpixConverge;
+                        // Compute adaptive loss gradient for front
+                        float front_depth_diff = c_d - front_depth;
+                        float front_depth_diff_sq = front_depth_diff * front_depth_diff;
+                        const float delta = 0.3f;
+                        const float delta_sq = delta * delta;
+                        float front_denominator = 1.0f + front_depth_diff_sq / delta_sq;
+                        float front_adaptive_loss_grad = 2.0f * front_depth_diff / (front_denominator * front_denominator);
+                        
+                        float front_grad = improved_base_weight_front * front_adaptive_loss_grad * dL_dpixConverge;
                         if (c_d > front_depth) {
                             front_grad *= forward_scale;
                         }
@@ -383,7 +391,15 @@ renderCUDA(
                             float ratio_back = (max_G_back > 1e-8f) ? (min_G_back / max_G_back) : 0.0f;
                             float improved_base_weight_back = geometric_mean_back * (0.7f + 0.3f * ratio_back);
                             
-                            float back_grad = improved_base_weight_back * 2.0f * (c_d - last_convergeDepth) * dL_dpixConverge;
+                            // Compute adaptive loss gradient for back
+                            float back_depth_diff = c_d - last_convergeDepth;
+                            float back_depth_diff_sq = back_depth_diff * back_depth_diff;
+                            const float delta_back = 0.3f;
+                            const float delta_sq_back = delta_back * delta_back;
+                            float back_denominator = 1.0f + back_depth_diff_sq / delta_sq_back;
+                            float back_adaptive_loss_grad = 2.0f * back_depth_diff / (back_denominator * back_denominator);
+                            
+                            float back_grad = improved_base_weight_back * back_adaptive_loss_grad * dL_dpixConverge;
                             if (c_d > last_convergeDepth) {
                                 back_grad *= forward_scale;
                             }

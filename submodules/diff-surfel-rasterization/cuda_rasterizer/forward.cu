@@ -437,7 +437,7 @@ renderCUDA(
 			for (int ch = 0; ch < CHANNELS; ch++)
 				C[ch] += features[collected_id[j] * CHANNELS + ch] * w;
 
-			// Converge Loss with improved base weight
+			// Converge Loss with improved base weight and adaptive loss form
 			if((T > 0.09f)) {
 				if(last_converge > 0) {
                     if (abs(depth - last_depth) <= ConvergeThreshold) {
@@ -450,9 +450,18 @@ renderCUDA(
                         float ratio = (max_G > 1e-8f) ? (min_G / max_G) : 0.0f;
                         float improved_base_weight = geometric_mean * (0.7f + 0.3f * ratio);
                         
-                        // Apply improved weight to loss (keeping original loss form for now)
+                        // Step 2: Compute adaptive loss form
+                        // Original: depth_diff²
+                        // Improved: depth_diff² / (1 + depth_diff² / δ²), where δ = 0.3
                         float depth_diff = depth - last_depth;
-                        Converge += improved_base_weight * depth_diff * depth_diff;
+                        float depth_diff_sq = depth_diff * depth_diff;
+                        const float delta = 0.3f;
+                        const float delta_sq = delta * delta;
+                        float denominator = 1.0f + depth_diff_sq / delta_sq;
+                        float adaptive_loss = depth_diff_sq / denominator;
+                        
+                        // Apply improved weight and adaptive loss
+                        Converge += improved_base_weight * adaptive_loss;
                     }
 				}
                 last_G = G;
