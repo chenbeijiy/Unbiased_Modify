@@ -139,7 +139,17 @@ def multiview_reflection_consistency_loss_improved(
         reflection_weight = compute_reflection_weight(rgb_image, sigmoid_scale=sigmoid_scale)
         reflection_weights.append(reflection_weight)
     
-    # Compute pairwise depth consistency loss
+    # Unify spatial size to avoid shape mismatch when cameras have different resolutions
+    target_H, target_W = depths[0].shape[-2], depths[0].shape[-1]
+    for idx in range(len(depths)):
+        d = depths[idx]  # [1, H, W]
+        if d.shape[-2] != target_H or d.shape[-1] != target_W:
+            depths[idx] = F.interpolate(d.unsqueeze(0), size=(target_H, target_W), mode='bilinear', align_corners=False).squeeze(0)
+        r = reflection_weights[idx]  # [1, H, W]
+        if r.shape[-2] != target_H or r.shape[-1] != target_W:
+            reflection_weights[idx] = F.interpolate(r.unsqueeze(0), size=(target_H, target_W), mode='bilinear', align_corners=False).squeeze(0)
+    
+    # Compute pairwise depth consistency loss (each pair (i,j) computed once)
     for i in range(len(render_pkgs)):
         for j in range(i + 1, len(render_pkgs)):
             depth_i = depths[i]  # [1, H, W]
