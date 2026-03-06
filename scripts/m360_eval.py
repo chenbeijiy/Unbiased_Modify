@@ -42,6 +42,7 @@ if not skip_training:
         "--test_iterations -1",
         "--eval", # Only required when NVS
         "--lambda_dist 0",
+        f"--logger_enabled",
         f"--seed {seed}"
     ])
     for scene in mipnerf360_outdoor_scenes:

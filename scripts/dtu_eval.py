@@ -37,7 +37,7 @@ if __name__ == '__main__':
                 f"--lambda_dist {lambda_dist}",
                 f"--gamma 0.5",
                 f"--seed {seed}",
-                # f"--logger_enabled",
+                f"--logger_enabled",
             ])
 
             source = TDGS_dtu_path + "/" + scene

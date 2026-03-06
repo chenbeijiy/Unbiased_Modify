@@ -327,6 +327,7 @@ renderCUDA(
     float first_depth = 0;
 	float last_depth = 0;
     float last_G = 0;
+    float last_normal[3] = {0, 0, 0};
     float cum_opacity = 0;
 #endif
 
@@ -437,7 +438,7 @@ renderCUDA(
 			for (int ch = 0; ch < CHANNELS; ch++)
 				C[ch] += features[collected_id[j] * CHANNELS + ch] * w;
 
-			// Converge Loss with improved base weight and adaptive loss form
+			// Converge Loss with improved base weight, adaptive loss form, and normal-guided refinement
 			if((T > 0.09f)) {
 				if(last_converge > 0) {
                     if (abs(depth - last_depth) <= ConvergeThreshold) {
@@ -460,8 +461,25 @@ renderCUDA(
                         float denominator = 1.0f + depth_diff_sq / delta_sq;
                         float adaptive_loss = depth_diff_sq / denominator;
                         
-                        // Apply improved weight and adaptive loss
-                        Converge += improved_base_weight * adaptive_loss;
+                        // Step 3: Normal-guided surface continuity refinement
+                        // Compute normal similarity: dot product of normalized normals
+                        float normal_similarity = normal[0] * last_normal[0] + 
+                                                  normal[1] * last_normal[1] + 
+                                                  normal[2] * last_normal[2];
+                        float depth_diff_abs = abs(depth_diff);
+                        
+                        float refinement_factor = 1.0f;
+                        if (normal_similarity > 0.85f && depth_diff_abs < 0.08f) {
+                            // Case 1: Same surface - strengthen constraint
+                            refinement_factor = 1.15f;
+                        } else if (normal_similarity < 0.4f && depth_diff_abs > 0.25f) {
+                            // Case 2: Different objects - weaken constraint
+                            refinement_factor = 0.85f;
+                        }
+                        // Case 3: Uncertain - keep base weight (refinement_factor = 1.0)
+                        
+                        // Apply improved weight, adaptive loss, and refinement factor
+                        Converge += improved_base_weight * refinement_factor * adaptive_loss;
                     }
 				}
                 last_G = G;
@@ -470,6 +488,9 @@ renderCUDA(
 
  			T = test_T;
             last_depth = depth;
+            last_normal[0] = normal[0];
+            last_normal[1] = normal[1];
+            last_normal[2] = normal[2];
 
 			// Keep track of last range entry to update this pixel.
 			last_contributor = contributor;

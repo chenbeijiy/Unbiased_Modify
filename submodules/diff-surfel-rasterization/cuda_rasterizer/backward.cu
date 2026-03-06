@@ -231,6 +231,7 @@ renderCUDA(
 
 	float last_convergeDepth = 0;
     float last_G = 0;
+    float last_convergeNormal[3] = {0, 0, 0};
 
 	float accum_depth_rec = 0;
 	float accum_alpha_rec = 0;
@@ -322,6 +323,7 @@ renderCUDA(
 			if (contributor < final_converge) {
 				float front_depth = -1.0f;
                 float front_G = 0.0f;
+                float front_normal[3] = {0, 0, 0};
                 for (int ll = j+1; !done && ll < min(BLOCK_SIZE, toDo); ll++) {
 					const float2 xy_front = collected_xy[ll];
 					const float3 Tu_front = collected_Tu[ll];
@@ -353,6 +355,9 @@ renderCUDA(
 					if (alpha_front < 1.0f / 255.0f)
 						continue;
 					front_depth = c_d_front;
+					front_normal[0] = nor_o_front.x;
+					front_normal[1] = nor_o_front.y;
+					front_normal[2] = nor_o_front.z;
 					break;
 				}
 
@@ -375,7 +380,21 @@ renderCUDA(
                         float front_denominator = 1.0f + front_depth_diff_sq / delta_sq;
                         float front_adaptive_loss_grad = 2.0f * front_depth_diff / (front_denominator * front_denominator);
                         
-                        float front_grad = improved_base_weight_front * front_adaptive_loss_grad * dL_dpixConverge;
+                        // Compute normal-guided refinement factor for front
+                        float front_normal_similarity = normal[0] * front_normal[0] + 
+                                                        normal[1] * front_normal[1] + 
+                                                        normal[2] * front_normal[2];
+                        float front_depth_diff_abs = abs(front_depth_diff);
+                        float front_refinement_factor = 1.0f;
+                        if (front_normal_similarity > 0.85f && front_depth_diff_abs < 0.08f) {
+                            // Same surface - strengthen constraint
+                            front_refinement_factor = 1.15f;
+                        } else if (front_normal_similarity < 0.4f && front_depth_diff_abs > 0.25f) {
+                            // Different objects - weaken constraint
+                            front_refinement_factor = 0.85f;
+                        }
+                        
+                        float front_grad = improved_base_weight_front * front_refinement_factor * front_adaptive_loss_grad * dL_dpixConverge;
                         if (c_d > front_depth) {
                             front_grad *= forward_scale;
                         }
@@ -399,7 +418,21 @@ renderCUDA(
                             float back_denominator = 1.0f + back_depth_diff_sq / delta_sq_back;
                             float back_adaptive_loss_grad = 2.0f * back_depth_diff / (back_denominator * back_denominator);
                             
-                            float back_grad = improved_base_weight_back * back_adaptive_loss_grad * dL_dpixConverge;
+                            // Compute normal-guided refinement factor for back
+                            float back_normal_similarity = normal[0] * last_convergeNormal[0] + 
+                                                           normal[1] * last_convergeNormal[1] + 
+                                                           normal[2] * last_convergeNormal[2];
+                            float back_depth_diff_abs = abs(back_depth_diff);
+                            float back_refinement_factor = 1.0f;
+                            if (back_normal_similarity > 0.85f && back_depth_diff_abs < 0.08f) {
+                                // Same surface - strengthen constraint
+                                back_refinement_factor = 1.15f;
+                            } else if (back_normal_similarity < 0.4f && back_depth_diff_abs > 0.25f) {
+                                // Different objects - weaken constraint
+                                back_refinement_factor = 0.85f;
+                            }
+                            
+                            float back_grad = improved_base_weight_back * back_refinement_factor * back_adaptive_loss_grad * dL_dpixConverge;
                             if (c_d > last_convergeDepth) {
                                 back_grad *= forward_scale;
                             }
@@ -410,6 +443,9 @@ renderCUDA(
 
 				last_convergeDepth = c_d;
                 last_G = G;
+                last_convergeNormal[0] = normal[0];
+                last_convergeNormal[1] = normal[1];
+                last_convergeNormal[2] = normal[2];
 			}   // end if (contributor < final_converge)
 
 			// Propagate gradients to per-Gaussian colors and keep
