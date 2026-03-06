@@ -28,6 +28,7 @@ from scene import Scene, GaussianModel
 from utils.general_utils import safe_state
 from utils.image_utils import psnr, render_net_image
 from arguments import ModelParams, PipelineParams, OptimizationParams
+from utils.multiview_reflection_consistency_improved import multiview_reflection_consistency_loss_improved
 try:
     from torch.utils.tensorboard import SummaryWriter
     TENSORBOARD_FOUND = True
@@ -63,6 +64,7 @@ def training(dataset: ModelParams,
     ema_dist_for_log = 0.0
     ema_normal_for_log = 0.0
     ema_converge_for_log = 0.0
+    ema_multiview_reflection_for_log = 0.0
 
     progress_bar = tqdm(range(first_iter, opt.iterations), desc="Training progress")
     first_iter += 1
@@ -111,8 +113,46 @@ def training(dataset: ModelParams,
         normal_loss = lambda_normal * (normal_error).mean()
         dist_loss = lambda_dist * (rend_dist).mean()
 
+        # Multi-view Reflection Consistency Loss (Innovation Point 2)
+        multiview_reflection_loss = torch.tensor(0.0, device=image.device, requires_grad=True)
+        lambda_multiview_reflection = opt.lambda_multiview_reflection if iteration > 15000 else 0.0
+        
+        if lambda_multiview_reflection > 0.0 and iteration % 5 == 0:  # Compute every 5 iterations for efficiency
+            # Sample multiple viewpoints for multi-view consistency
+            num_multiview_samples = min(3, len(scene.getTrainCameras()))
+            if num_multiview_samples >= 2:
+                multiview_cameras = []
+                multiview_render_pkgs = []
+                
+                # Get available cameras
+                available_cameras = scene.getTrainCameras().copy()
+                
+                # Sample random cameras
+                for _ in range(num_multiview_samples):
+                    if len(available_cameras) > 0:
+                        idx = randint(0, len(available_cameras) - 1)
+                        multiview_cam = available_cameras.pop(idx)
+                        multiview_cameras.append(multiview_cam)
+                        
+                        # Render from this viewpoint
+                        multiview_render_pkg = render(multiview_cam, gaussians, pipe, background)
+                        multiview_render_pkgs.append(multiview_render_pkg)
+                
+                # Compute multi-view reflection consistency loss
+                if len(multiview_render_pkgs) >= 2:
+                    multiview_reflection_loss = multiview_reflection_consistency_loss_improved(
+                        render_pkgs=multiview_render_pkgs,
+                        viewpoint_cameras=multiview_cameras,
+                        lambda_weight=lambda_multiview_reflection,
+                        mask_background=True,
+                        use_highlight_mask=True,
+                        highlight_threshold=0.5,
+                        resolution_scale=0.75,  # Use lower resolution for efficiency
+                        sigmoid_scale=10.0
+                    )
+
         # loss
-        total_loss = loss + dist_loss + normal_loss + converge_loss
+        total_loss = loss + dist_loss + normal_loss + converge_loss + multiview_reflection_loss
         
         total_loss.backward()
 
@@ -124,6 +164,7 @@ def training(dataset: ModelParams,
             # ema_dist_for_log = 0.4 * dist_loss.item() + 0.6 * ema_dist_for_log
             ema_normal_for_log = 0.4 * normal_loss.item() + 0.6 * ema_normal_for_log
             ema_converge_for_log = 0.4 * converge_loss.item() + 0.6 * ema_converge_for_log
+            ema_multiview_reflection_for_log = 0.4 * multiview_reflection_loss.item() + 0.6 * ema_multiview_reflection_for_log
 
             if iteration % 10 == 0:
                 loss_dict = {
@@ -131,6 +172,7 @@ def training(dataset: ModelParams,
                     # "distort": f"{ema_dist_for_log:.{5}f}",
                     "normal": f"{ema_normal_for_log:.{5}f}",
                     "converge": f"{ema_converge_for_log:.{5}f}",
+                    "mv_reflect": f"{ema_multiview_reflection_for_log:.{5}f}" if lambda_multiview_reflection > 0.0 else "0.0",
                     "Points": f"{len(gaussians.get_xyz)}"  
                 }
                 progress_bar.set_postfix(loss_dict)
@@ -144,6 +186,8 @@ def training(dataset: ModelParams,
             if tb_writer is not None:
                 tb_writer.add_scalar('train_loss_patches/dist_loss', ema_dist_for_log, iteration)
                 tb_writer.add_scalar('train_loss_patches/normal_loss', ema_normal_for_log, iteration)
+                tb_writer.add_scalar('train_loss_patches/converge_loss', ema_converge_for_log, iteration)
+                tb_writer.add_scalar('train_loss_patches/multiview_reflection_loss', ema_multiview_reflection_for_log, iteration)
 
             training_report(tb_writer, iteration, Ll1, loss, l1_loss, iter_start.elapsed_time(iter_end),
                             testing_iterations, scene, render, (pipe, background), dataset)

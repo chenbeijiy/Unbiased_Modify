@@ -86,6 +86,7 @@ class OptimizationParams(ParamGroup):
         self.lambda_dist = 0.0
         self.lambda_normal = 0.05
         self.lambda_converge = 7.0
+        self.lambda_multiview_reflection = 0.5  # Default: 0.5 (enables Innovation Point 2 after iteration 15000)
         self.opacity_cull = 0.05
 
         self.densification_interval = 100
