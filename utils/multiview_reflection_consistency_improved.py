@@ -171,7 +171,8 @@ def multiview_reflection_consistency_loss_improved(
             
             # Compute weighted loss
             weighted_loss = reflection_weight * depth_diff_sq * mask
-            total_loss += weighted_loss.mean()
+            # Use = instead of += to avoid in-place op on leaf tensor (which requires grad)
+            total_loss = total_loss + weighted_loss.mean()
             num_pairs += 1
     
     # Average over all pairs
