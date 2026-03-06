@@ -1,0 +1,6 @@
+# ninja log v5
+1	1416	1769838539967406074	/disk/cyy/PyProjects/Unbiased_Surfel/submodules/diff-surfel-rasterization/build/temp.linux-x86_64-cpython-38/cuda_rasterizer/forward.o	e7f356ba9c78875e
+0	1494	1769838540045405767	/disk/cyy/PyProjects/Unbiased_Surfel/submodules/diff-surfel-rasterization/build/temp.linux-x86_64-cpython-38/cuda_rasterizer/backward.o	daa1e31be77d00ba
+2	3715	1769838542265397031	/disk/cyy/PyProjects/Unbiased_Surfel/submodules/diff-surfel-rasterization/build/temp.linux-x86_64-cpython-38/cuda_rasterizer/rasterizer_impl.o	8c7a50942a84984
+2	8111	1769838546660471229	/disk/cyy/PyProjects/Unbiased_Surfel/submodules/diff-surfel-rasterization/build/temp.linux-x86_64-cpython-38/ext.o	5ffb37b2b2e6a1df
+3	23570	1769838562116564266	/disk/cyy/PyProjects/Unbiased_Surfel/submodules/diff-surfel-rasterization/build/temp.linux-x86_64-cpython-38/rasterize_points.o	4fdb0cccf530cd98
