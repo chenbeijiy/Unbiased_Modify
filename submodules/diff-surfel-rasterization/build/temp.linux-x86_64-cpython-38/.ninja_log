@@ -4,3 +4,6 @@
 2	3715	1769838542265397031	/disk/cyy/PyProjects/Unbiased_Surfel/submodules/diff-surfel-rasterization/build/temp.linux-x86_64-cpython-38/cuda_rasterizer/rasterizer_impl.o	8c7a50942a84984
 2	8111	1769838546660471229	/disk/cyy/PyProjects/Unbiased_Surfel/submodules/diff-surfel-rasterization/build/temp.linux-x86_64-cpython-38/ext.o	5ffb37b2b2e6a1df
 3	23570	1769838562116564266	/disk/cyy/PyProjects/Unbiased_Surfel/submodules/diff-surfel-rasterization/build/temp.linux-x86_64-cpython-38/rasterize_points.o	4fdb0cccf530cd98
+1	1396	1772771752902638234	/disk/cyy/PyProjects/Unbiased_Modify/submodules/diff-surfel-rasterization/build/temp.linux-x86_64-cpython-38/cuda_rasterizer/forward.o	a8561e2417f48ce1
+1	1464	1772771752970120191	/disk/cyy/PyProjects/Unbiased_Modify/submodules/diff-surfel-rasterization/build/temp.linux-x86_64-cpython-38/cuda_rasterizer/backward.o	a8be99749ef7e427
+2	3639	1772771755144221160	/disk/cyy/PyProjects/Unbiased_Modify/submodules/diff-surfel-rasterization/build/temp.linux-x86_64-cpython-38/cuda_rasterizer/rasterizer_impl.o	ec082fa2438f17f

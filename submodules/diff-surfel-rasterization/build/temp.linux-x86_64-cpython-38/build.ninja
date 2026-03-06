@@ -5,7 +5,7 @@ nvcc = /usr/local/cuda/bin/nvcc
 cflags = -pthread -B /home/jonas/anaconda3/envs/2dgs/compiler_compat -Wno-unused-result -Wsign-compare -DNDEBUG -fwrapv -O2 -Wall -fPIC -O2 -isystem /home/jonas/anaconda3/envs/2dgs/include -fPIC -O2 -isystem /home/jonas/anaconda3/envs/2dgs/include -fPIC -I/home/jonas/anaconda3/envs/2dgs/lib/python3.8/site-packages/torch/include -I/home/jonas/anaconda3/envs/2dgs/lib/python3.8/site-packages/torch/include/torch/csrc/api/include -I/home/jonas/anaconda3/envs/2dgs/lib/python3.8/site-packages/torch/include/TH -I/home/jonas/anaconda3/envs/2dgs/lib/python3.8/site-packages/torch/include/THC -I/usr/local/cuda/include -I/home/jonas/anaconda3/envs/2dgs/include/python3.8 -c
 post_cflags = -DTORCH_API_INCLUDE_EXTENSION_H '-DPYBIND11_COMPILER_TYPE="_gcc"' '-DPYBIND11_STDLIB="_libstdcpp"' '-DPYBIND11_BUILD_ABI="_cxxabi1011"' -DTORCH_EXTENSION_NAME=_C -D_GLIBCXX_USE_CXX11_ABI=0 -std=c++17
 cuda_cflags = -I/home/jonas/anaconda3/envs/2dgs/lib/python3.8/site-packages/torch/include -I/home/jonas/anaconda3/envs/2dgs/lib/python3.8/site-packages/torch/include/torch/csrc/api/include -I/home/jonas/anaconda3/envs/2dgs/lib/python3.8/site-packages/torch/include/TH -I/home/jonas/anaconda3/envs/2dgs/lib/python3.8/site-packages/torch/include/THC -I/usr/local/cuda/include -I/home/jonas/anaconda3/envs/2dgs/include/python3.8 -c
-cuda_post_cflags = -D__CUDA_NO_HALF_OPERATORS__ -D__CUDA_NO_HALF_CONVERSIONS__ -D__CUDA_NO_BFLOAT16_CONVERSIONS__ -D__CUDA_NO_HALF2_OPERATORS__ --expt-relaxed-constexpr --compiler-options ''"'"'-fPIC'"'"'' -I/disk/cyy/PyProjects/Unbiased_Surfel/submodules/diff-surfel-rasterization/third_party/glm/ -DTORCH_API_INCLUDE_EXTENSION_H '-DPYBIND11_COMPILER_TYPE="_gcc"' '-DPYBIND11_STDLIB="_libstdcpp"' '-DPYBIND11_BUILD_ABI="_cxxabi1011"' -DTORCH_EXTENSION_NAME=_C -D_GLIBCXX_USE_CXX11_ABI=0 -gencode=arch=compute_89,code=compute_89 -gencode=arch=compute_89,code=sm_89 -std=c++17
+cuda_post_cflags = -D__CUDA_NO_HALF_OPERATORS__ -D__CUDA_NO_HALF_CONVERSIONS__ -D__CUDA_NO_BFLOAT16_CONVERSIONS__ -D__CUDA_NO_HALF2_OPERATORS__ --expt-relaxed-constexpr --compiler-options ''"'"'-fPIC'"'"'' -I/disk/cyy/PyProjects/Unbiased_Modify/submodules/diff-surfel-rasterization/third_party/glm/ -DTORCH_API_INCLUDE_EXTENSION_H '-DPYBIND11_COMPILER_TYPE="_gcc"' '-DPYBIND11_STDLIB="_libstdcpp"' '-DPYBIND11_BUILD_ABI="_cxxabi1011"' -DTORCH_EXTENSION_NAME=_C -D_GLIBCXX_USE_CXX11_ABI=0 -gencode=arch=compute_89,code=compute_89 -gencode=arch=compute_89,code=sm_89 -std=c++17
 cuda_dlink_post_cflags = 
 ldflags = 
 
@@ -23,11 +23,11 @@ rule cuda_compile
 
 
 
-build /disk/cyy/PyProjects/Unbiased_Surfel/submodules/diff-surfel-rasterization/build/temp.linux-x86_64-cpython-38/cuda_rasterizer/backward.o: cuda_compile /disk/cyy/PyProjects/Unbiased_Surfel/submodules/diff-surfel-rasterization/cuda_rasterizer/backward.cu
-build /disk/cyy/PyProjects/Unbiased_Surfel/submodules/diff-surfel-rasterization/build/temp.linux-x86_64-cpython-38/cuda_rasterizer/forward.o: cuda_compile /disk/cyy/PyProjects/Unbiased_Surfel/submodules/diff-surfel-rasterization/cuda_rasterizer/forward.cu
-build /disk/cyy/PyProjects/Unbiased_Surfel/submodules/diff-surfel-rasterization/build/temp.linux-x86_64-cpython-38/cuda_rasterizer/rasterizer_impl.o: cuda_compile /disk/cyy/PyProjects/Unbiased_Surfel/submodules/diff-surfel-rasterization/cuda_rasterizer/rasterizer_impl.cu
-build /disk/cyy/PyProjects/Unbiased_Surfel/submodules/diff-surfel-rasterization/build/temp.linux-x86_64-cpython-38/ext.o: compile /disk/cyy/PyProjects/Unbiased_Surfel/submodules/diff-surfel-rasterization/ext.cpp
-build /disk/cyy/PyProjects/Unbiased_Surfel/submodules/diff-surfel-rasterization/build/temp.linux-x86_64-cpython-38/rasterize_points.o: cuda_compile /disk/cyy/PyProjects/Unbiased_Surfel/submodules/diff-surfel-rasterization/rasterize_points.cu
+build /disk/cyy/PyProjects/Unbiased_Modify/submodules/diff-surfel-rasterization/build/temp.linux-x86_64-cpython-38/cuda_rasterizer/backward.o: cuda_compile /disk/cyy/PyProjects/Unbiased_Modify/submodules/diff-surfel-rasterization/cuda_rasterizer/backward.cu
+build /disk/cyy/PyProjects/Unbiased_Modify/submodules/diff-surfel-rasterization/build/temp.linux-x86_64-cpython-38/cuda_rasterizer/forward.o: cuda_compile /disk/cyy/PyProjects/Unbiased_Modify/submodules/diff-surfel-rasterization/cuda_rasterizer/forward.cu
+build /disk/cyy/PyProjects/Unbiased_Modify/submodules/diff-surfel-rasterization/build/temp.linux-x86_64-cpython-38/cuda_rasterizer/rasterizer_impl.o: cuda_compile /disk/cyy/PyProjects/Unbiased_Modify/submodules/diff-surfel-rasterization/cuda_rasterizer/rasterizer_impl.cu
+build /disk/cyy/PyProjects/Unbiased_Modify/submodules/diff-surfel-rasterization/build/temp.linux-x86_64-cpython-38/ext.o: compile /disk/cyy/PyProjects/Unbiased_Modify/submodules/diff-surfel-rasterization/ext.cpp
+build /disk/cyy/PyProjects/Unbiased_Modify/submodules/diff-surfel-rasterization/build/temp.linux-x86_64-cpython-38/rasterize_points.o: cuda_compile /disk/cyy/PyProjects/Unbiased_Modify/submodules/diff-surfel-rasterization/rasterize_points.cu
 
 
 

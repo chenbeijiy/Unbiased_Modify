@@ -359,20 +359,36 @@ renderCUDA(
                 constexpr float forward_scale = 1.25; // Encourage convergence toward camera
 
                 if (front_depth >= 0.0f) {
-                    float front_grad = min(G, front_G) * 2  * (c_d - front_depth) * dL_dpixConverge;
-                    if (c_d > front_depth) {
-                        front_grad *= forward_scale;
+                    if (abs(c_d - front_depth) <= ConvergeThreshold) {
+                        // Compute improved base weight for front gradient
+                        float geometric_mean_front = sqrtf(G * front_G);
+                        float min_G_front = min(G, front_G);
+                        float max_G_front = max(G, front_G);
+                        float ratio_front = (max_G_front > 1e-8f) ? (min_G_front / max_G_front) : 0.0f;
+                        float improved_base_weight_front = geometric_mean_front * (0.7f + 0.3f * ratio_front);
+                        
+                        float front_grad = improved_base_weight_front * 2.0f * (c_d - front_depth) * dL_dpixConverge;
+                        if (c_d > front_depth) {
+                            front_grad *= forward_scale;
+                        }
+                        dL_dz += front_grad;
                     }
-                    front_grad = abs(c_d - front_depth) > ConvergeThreshold ? 0.0 : front_grad;
-                    dL_dz += front_grad;
 
                     if (contributor < final_converge - 1) {
-                        float back_grad = min(G, last_G) * 2  * (c_d - last_convergeDepth) * dL_dpixConverge;
-                        if (c_d > last_convergeDepth) {
-                            back_grad *= forward_scale;
+                        if (abs(c_d - last_convergeDepth) <= ConvergeThreshold) {
+                            // Compute improved base weight for back gradient
+                            float geometric_mean_back = sqrtf(G * last_G);
+                            float min_G_back = min(G, last_G);
+                            float max_G_back = max(G, last_G);
+                            float ratio_back = (max_G_back > 1e-8f) ? (min_G_back / max_G_back) : 0.0f;
+                            float improved_base_weight_back = geometric_mean_back * (0.7f + 0.3f * ratio_back);
+                            
+                            float back_grad = improved_base_weight_back * 2.0f * (c_d - last_convergeDepth) * dL_dpixConverge;
+                            if (c_d > last_convergeDepth) {
+                                back_grad *= forward_scale;
+                            }
+                            dL_dz += back_grad;
                         }
-                        back_grad = abs(c_d - last_convergeDepth) > ConvergeThreshold ? 0.0 : back_grad;
-                        dL_dz += back_grad;
                     }
                 }
 

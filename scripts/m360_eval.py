@@ -34,7 +34,7 @@ all_scenes.extend(mipnerf360_outdoor_scenes)
 all_scenes.extend(mipnerf360_indoor_scenes)
 
 
-output_path = f"./eval/mipnerf360/{seed}"
+output_path = f"../output/modify/mipnerf360/{seed}"
 
 if not skip_training:
     common_args = " ".join([

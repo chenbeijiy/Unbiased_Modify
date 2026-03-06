@@ -10,7 +10,7 @@ if __name__ == '__main__':
     DTU_Official = "../data/dtu-2dgs"
 
     dtu_scenes = ['scan24', 'scan37', 'scan40', 'scan55', 'scan63', 'scan65', 'scan69', 'scan83', 'scan97', 'scan105', 'scan106', 'scan110', 'scan114', 'scan118', 'scan122']
-    dtu_scenes = ['scan24', 'scan37', 'scan40']
+    dtu_scenes = ['scan118']
 
     all_scenes = []
     all_scenes.extend(dtu_scenes)  
@@ -21,30 +21,20 @@ if __name__ == '__main__':
     skip_rendering = False
     skip_metrics   = False
 
-    densify_until_iter = 20000  # Apply densification before this iteration
-    iterations = 30000
-    assert densify_until_iter < iterations
-
     lambda_normal = 0.05        # 2D_GS Normal Consistency
     lambda_dist = 0             # 2D_GS Depth Distortion
-    lambda_converge = 7.0       # Converge Loss
     seed = 1
 
     for scene in dtu_scenes:
-        output_path = "../output/unbaised/eval/dtu/" + scene
+        output_path = "../output/modify/dtu/" + scene
 
         # ---------------------- Train ----------------------
         if not skip_training:
             common_args = " ".join([
                 "--quiet",
                 f"-r 2",
-                f"--test_iterations {iterations}",
-                f"--save_iterations {iterations}",
                 f"--lambda_normal {lambda_normal}",
                 f"--lambda_dist {lambda_dist}",
-                f"--lambda_converge {lambda_converge}",
-                f"--iterations {iterations}",
-                f"--densify_until_iter {densify_until_iter}",
                 f"--gamma 0.5",
                 f"--seed {seed}",
                 # f"--logger_enabled",
@@ -68,12 +58,12 @@ if __name__ == '__main__':
             ])
             source = TDGS_dtu_path + "/" + scene
             cmd = python_path + \
-                f" render.py --iteration {iterations} -s " + \
+                f" render.py -s " + \
                 source + " -m" + output_path + " " + common_args
             os.system(cmd)
 
     for scene in dtu_scenes:
-        output_path = "../output/unbaised/eval/dtu/" + scene
+        output_path = "../output/modify/dtu/" + scene
         # ------------------------ Evaluate ------------------------
         if not skip_metrics:
             scan_id = scene[4:]
@@ -88,7 +78,7 @@ if __name__ == '__main__':
             cmd = " ".join([
                 python_path,
                 f"{script_dir}/eval_dtu/evaluate_single_scene.py",
-                f"--input_mesh {output_path}/train/ours_{iterations}/fuse_post.ply",
+                f"--input_mesh {output_path}/train/ours_30000/fuse_post.ply",
                 f"--scan_id {scan_id}",
                 f"--output_dir {output_eval_path}",
                 f"--mask_dir {TDGS_dtu_path}",
