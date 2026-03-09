@@ -10,7 +10,7 @@ if __name__ == '__main__':
     DTU_Official = "../data/dtu-2dgs"
 
     dtu_scenes = ['scan24', 'scan37', 'scan40', 'scan55', 'scan63', 'scan65', 'scan69', 'scan83', 'scan97', 'scan105', 'scan106', 'scan110', 'scan114', 'scan118', 'scan122']
-    dtu_scenes = ['scan118']
+    # dtu_scenes = ['scan55','scan63','scan65']
 
     all_scenes = []
     all_scenes.extend(dtu_scenes)  
@@ -26,7 +26,7 @@ if __name__ == '__main__':
     seed = 1
 
     for scene in dtu_scenes:
-        output_path = "../output/modify/dtu/" + scene
+        output_path = "../output/modify-2-3-ff/dtu/" + scene
 
         # ---------------------- Train ----------------------
         if not skip_training:
@@ -51,6 +51,7 @@ if __name__ == '__main__':
             common_args = " ".join([
                 "--quiet",
                 "--skip_train",
+                f"--eval",
                 f"--num_cluster 1",
                 f"--voxel_size 0.004",
                 f"--sdf_trunc 0.016",
@@ -59,11 +60,11 @@ if __name__ == '__main__':
             source = TDGS_dtu_path + "/" + scene
             cmd = python_path + \
                 f" render.py -s " + \
-                source + " -m" + output_path + " " + common_args
+                source + " -m " + output_path + " " + common_args
             os.system(cmd)
 
     for scene in dtu_scenes:
-        output_path = "../output/modify/dtu/" + scene
+        output_path = "../output/modify-2-3-ff/dtu/" + scene
         # ------------------------ Evaluate ------------------------
         if not skip_metrics:
             scan_id = scene[4:]

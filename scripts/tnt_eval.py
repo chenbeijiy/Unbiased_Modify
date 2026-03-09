@@ -6,21 +6,21 @@ from argparse import ArgumentParser
 TNT_data = "../data/TNT_GOF"
 
 tnt_360_scenes = ['Barn', 'Caterpillar', 'Ignatius', 'Truck']
-tnt_360_scenes = ['Barn']
+# tnt_360_scenes = ['Barn']
 tnt_large_scenes = ['Meetingroom', 'Courthouse']
-tnt_large_scenes = []
+# tnt_large_scenes = []
 
 
 python_path = sys.executable
 
 seed = 1111
 
-skip_training = True
-skip_rendering = True
-skip_metrics = False
+skip_training = False
+skip_rendering = False
+skip_metrics = True
 
 parser = ArgumentParser(description="Full evaluation script parameters")
-parser.add_argument("--output_path", default="../output/modify/tnt")
+parser.add_argument("--output_path", default="../output/modify-3/tnt")
 args, _ = parser.parse_known_args()
 
 if not skip_metrics:
@@ -37,7 +37,8 @@ if not skip_training:
         "--lambda_view_dependent 0.1",
         "--lambda_converge 5.0",
         "--lambda_dist 0",
-        f"--seed {seed}"
+        f"--seed {seed} "
+        f"--logger_enabled",
     ])
     
     for scene in tnt_360_scenes:

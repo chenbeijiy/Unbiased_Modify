@@ -96,7 +96,7 @@ def training(dataset: ModelParams,
 
         # Gamma corrected Image
         gt_image = viewpoint_cam.original_image.cuda().pow(dataset.gamma)
-        gt_image.pow(dataset.gamma)
+        # gt_image.pow(dataset.gamma)
 
         ssim_value = ssim(image, gt_image)
         if dataset.use_decoupled_appearance:  # L1损失中加入外观模型
@@ -178,6 +178,7 @@ def training(dataset: ModelParams,
 
         # loss
         total_loss = loss + dist_loss + normal_loss + converge_loss + multiview_reflection_loss + view_dependent_loss
+        # total_loss = loss + dist_loss + normal_loss + converge_loss + multiview_reflection_loss
         
         total_loss.backward()
 

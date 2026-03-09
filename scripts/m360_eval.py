@@ -17,9 +17,9 @@ from argparse import ArgumentParser
 mipnerf360 = "../data/m360"
 
 mipnerf360_outdoor_scenes = ["bicycle", "flowers", "garden", "stump", "treehill"]
-mipnerf360_outdoor_scenes = ["bicycle"]
+# mipnerf360_outdoor_scenes = []
 mipnerf360_indoor_scenes = ["room", "counter", "kitchen", "bonsai"]
-mipnerf360_indoor_scenes = []
+mipnerf360_indoor_scenes = ["room"]
 
 python_path = sys.executable
 
@@ -34,7 +34,7 @@ all_scenes.extend(mipnerf360_outdoor_scenes)
 all_scenes.extend(mipnerf360_indoor_scenes)
 
 
-output_path = f"../output/modify/mipnerf360/{seed}"
+output_path = f"../output/modify-3/mipnerf360"
 
 if not skip_training:
     common_args = " ".join([
@@ -43,7 +43,7 @@ if not skip_training:
         "--eval", # Only required when NVS
         "--lambda_dist 0",
         "--lambda_multiview_reflection 0.2",
-        "--lambda_view_dependent 0.1",
+        # "--lambda_view_dependent 0.1",
         "--lambda_converge 5.0",
         f"--logger_enabled",
         f"--seed {seed}"
@@ -66,7 +66,6 @@ if not skip_rendering:
             "--quiet",
             "--skip_train",  # Skip rendering training images
             # "--skip_mesh", # Skip mesh extraction
-            f"--eval",
             f"--voxel_size 0.004",
             f"--sdf_trunc 0.04",
             f"--depth_trunc 6.0"

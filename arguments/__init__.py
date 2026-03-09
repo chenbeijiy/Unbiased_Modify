@@ -82,12 +82,12 @@ class OptimizationParams(ParamGroup):
         self.opacity_lr = 0.05
         self.scaling_lr = 0.005
         self.rotation_lr = 0.001
-        self.percent_dense = 0.01
+        self.percent_dense = 0.01 
         self.lambda_dssim = 0.2
-        self.lambda_dist = 0.0
+        self.lambda_dist = 0.0  # 1000 in dtu/2dgs,100 in tnt
         self.lambda_normal = 0.05
-        self.lambda_converge = 7.0
-        self.lambda_multiview_reflection = 0.5  # Default: 0.5 (enables Innovation Point 2 after iteration 15000)
+        self.lambda_converge = 7.0   # default: 7.0 (enables Innovation Point 1 after iteration 10000)
+        self.lambda_multiview_reflection = 0.5 # Default: 0.5 (enables Innovation Point 2 after iteration 15000)
         self.lambda_view_dependent = 0.3  # Default: 0.3 (enables Innovation Point 3 after iteration 12000)
         self.opacity_cull = 0.05
 
